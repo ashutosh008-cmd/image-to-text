@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image to Text</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #uploadForm {
+            margin-bottom: 20px;
+        }
+        #resultBox {
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            min-height: 100px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        #pasteArea {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        button {
+            padding: 8px 15px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .image-preview {
+            margin: 10px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .preview-item {
+            position: relative;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .preview-item img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image se Text Extract Karein</h1>
+
+    <!-- Multiple Images Upload -->
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="files" accept="image/*" multiple required>
+        <button type="submit">Upload & Extract Text</button>
+    </form>
+
+    <!-- Image Previews -->
+    <div class="image-preview" id="imagePreview"></div>
+
+    <!-- Paste Area -->
+    <div id="pasteArea">
+        <p>Ya phir screenshot paste karein (Win+Shift+S)</p>
+    </div>
+
+    <h3>Extracted Text:</h3>
+    <div id="resultBox"></div>
+
+    <script>
+        // Image Preview
+        document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            for (const file of e.target.files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.appendChild(img);
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Upload Form
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            await extractText(formData);
+        });
+
+        // Paste Image from Clipboard
+        document.getElementById('pasteArea').addEventListener('paste', async (e) => {
+            e.preventDefault();
+            const items = (e.clipboardData || e.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const formData = new FormData();
+                    formData.append('files', blob, 'pasted_image.png');
+                    await extractText(formData);
+                    break;
+                }
+            }
+        });
+
+        // Extract Text Function
+        async function extractText(formData) {
+            const response = await fetch('/extract_text', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            document.getElementById('resultBox').textContent = data.text;
+        }
+    </script>
+</body>
+</html>
